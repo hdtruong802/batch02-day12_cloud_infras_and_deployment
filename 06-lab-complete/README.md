@@ -23,15 +23,23 @@ Production-ready AI agent kết hợp tất cả Day 12 concepts.
 ```
 06-lab-complete/
 ├── app/
-│   ├── main.py           # FastAPI app
-│   ├── config.py         # 12-factor settings
-│   ├── auth.py           # API Key auth
-│   ├── rate_limiter.py   # Redis sliding window
-│   ├── cost_guard.py     # Monthly budget
-│   ├── session.py        # Conversation history
-│   └── redis_client.py   # Redis connection
+│   ├── main.py              # FastAPI factory + middleware
+│   ├── config.py            # 12-factor settings
+│   ├── auth.py              # API Key auth
+│   ├── rate_limiter.py      # Redis sliding window
+│   ├── cost_guard.py        # Monthly budget
+│   ├── session.py           # Conversation history
+│   ├── redis_client.py      # Redis + fakeredis fallback
+│   ├── schemas.py           # Pydantic models
+│   ├── state.py             # Runtime counters
+│   └── routers/
+│       ├── agent.py         # POST /ask, GET /history
+│       └── ops.py           # /health, /ready, /metrics
 ├── utils/
 │   └── mock_llm.py
+├── tests/
+│   ├── conftest.py
+│   └── test_api.py
 ├── Dockerfile
 ├── docker-compose.yml
 ├── nginx.conf
