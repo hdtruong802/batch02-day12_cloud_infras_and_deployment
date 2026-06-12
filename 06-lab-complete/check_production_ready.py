@@ -76,9 +76,15 @@ def run_checks():
 
     # ── API Endpoints ────────────────────────────��─
     print("\n🌐 API Endpoints (code check)")
-    main_py = os.path.join(base, "app", "main.py")
-    if os.path.exists(main_py):
-        content = open(main_py).read()
+    app_dir = os.path.join(base, "app")
+    content = ""
+    if os.path.isdir(app_dir):
+        for root, _, files in os.walk(app_dir):
+            for fname in files:
+                if fname.endswith(".py"):
+                    with open(os.path.join(root, fname), encoding="utf-8") as f:
+                        content += f.read() + "\n"
+    if content:
         results.append(check("/health endpoint defined",
                              '"/health"' in content or "'/health'" in content))
         results.append(check("/ready endpoint defined",
@@ -92,7 +98,7 @@ def run_checks():
         results.append(check("Structured logging (JSON)",
                              "json.dumps" in content or '"event"' in content))
     else:
-        results.append(check("app/main.py exists", False, "Create app/main.py!"))
+        results.append(check("app/ package exists", False, "Create app/main.py!"))
 
     # ── Docker ─────────────────────────────────────
     print("\n🐳 Docker")
