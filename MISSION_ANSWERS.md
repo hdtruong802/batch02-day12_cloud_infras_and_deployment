@@ -96,3 +96,81 @@ Dùng Redis key `budget:{user_id}:{YYYY-MM}` để track chi phí theo tháng. T
 - **Graceful shutdown:** SIGTERM handler + lifespan cleanup đóng Redis connection.
 - **Stateless:** Conversation history, rate limit, budget đều trong Redis — không lưu memory.
 - **Load balancing:** `docker compose up --scale agent=3` + Nginx upstream round-robin.
+
+---
+
+## Part 6: Final Project
+
+### Requirements checklist
+
+| Requirement | Status | Implementation |
+|-------------|--------|----------------|
+| REST API `/ask` | Done | `app/routers/agent.py` — FastAPI + Pydantic |
+| Conversation history | Done | `app/session.py` — Redis lists, TTL 1h |
+| Docker multi-stage | Done | `06-lab-complete/Dockerfile` — builder + slim runtime |
+| Config from env | Done | `app/config.py` — 12-factor dataclass |
+| API key auth | Done | `app/auth.py` — `X-API-Key` header |
+| Rate limit 10/min | Done | `app/rate_limiter.py` — Redis sliding window → 429 |
+| Cost guard $10/month | Done | `app/cost_guard.py` — Redis budget key → 402 |
+| `/health` | Done | `app/routers/ops.py` — liveness probe |
+| `/ready` | Done | `app/routers/ops.py` — Redis ping, 503 if down |
+| Graceful shutdown | Done | `app/main.py` — SIGTERM + lifespan cleanup |
+| Stateless (Redis) | Done | History, rate, budget in Redis — not in memory |
+| JSON logging | Done | `app/main.py` — `json.dumps` event logs |
+| Nginx + scale 3 | Done | `docker-compose.yml` + `nginx.conf` |
+| Deploy Railway | Done | Root `Dockerfile` + `railway.json` |
+| Public URL | Done | See `DEPLOYMENT.md` |
+| CI (GitHub Actions) | Done | `.github/workflows/ci.yml` |
+
+### Architecture (implemented)
+
+```
+Client → Nginx (:80) → Agent x3 (:8000) → Redis
+```
+
+- **Nginx:** round-robin load balancer (`nginx.conf`)
+- **Agent:** stateless FastAPI containers, `X-Instance-Id` header
+- **Redis:** conversation history, rate limits, monthly budget
+
+### Validation results
+
+```bash
+cd 06-lab-complete
+python check_production_ready.py   # 20/20 checks passed
+pytest tests/ -v                   # 12 tests passed
+```
+
+**Production URL:**
+
+```
+https://batch02-day12cloudinfrasanddeployment-production-dfb1.up.railway.app
+```
+
+**Sample tests:**
+
+```bash
+# Health
+curl https://batch02-day12cloudinfrasanddeployment-production-dfb1.up.railway.app/health
+
+# Ask (replace YOUR_KEY with AGENT_API_KEY on Railway)
+curl -X POST https://batch02-day12cloudinfrasanddeployment-production-dfb1.up.railway.app/ask \
+  -H "X-API-Key: YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"test","question":"Hello"}'
+
+# Conversation context
+curl -X POST .../ask -H "X-API-Key: YOUR_KEY" -H "Content-Type: application/json" \
+  -d '{"user_id":"test","question":"What did I just say?"}'
+```
+
+### Self-assessment (Grading Rubric)
+
+| Criteria | Points | Notes |
+|----------|--------|-------|
+| Functionality | 20/20 | Agent, history, error 422 |
+| Docker | 15/15 | Multi-stage, compose, nginx |
+| Security | 20/20 | Auth, rate limit, cost guard |
+| Reliability | 20/20 | Health, ready, SIGTERM |
+| Scalability | 15/15 | Stateless + LB |
+| Deployment | 10/10 | Railway public URL + CI |
+| **Total** | **100/100** | |

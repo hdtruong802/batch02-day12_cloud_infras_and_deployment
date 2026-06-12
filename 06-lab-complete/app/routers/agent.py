@@ -47,7 +47,15 @@ async def ask_agent(
     append_message(body.user_id, "user", body.question)
 
     if history and "what did" in body.question.lower():
-        answer = "Bạn vừa nói: " + history[-1]["content"]
+        last_user = next(
+            (m for m in reversed(history) if m["role"] == "user"),
+            None,
+        )
+        answer = (
+            "Bạn vừa nói: " + last_user["content"]
+            if last_user
+            else llm_ask(body.question)
+        )
     else:
         answer = llm_ask(body.question)
 

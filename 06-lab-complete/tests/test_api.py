@@ -72,3 +72,40 @@ def test_metrics_success(client, api_headers):
     data = response.json()
     assert data["framework"] == "FastAPI"
     assert "total_requests" in data
+
+
+def test_conversation_context(client, api_headers):
+    client.post(
+        "/ask",
+        headers=api_headers,
+        json={"user_id": "ctx-user", "question": "My name is VinUni"},
+    )
+    response = client.post(
+        "/ask",
+        headers=api_headers,
+        json={"user_id": "ctx-user", "question": "What did I just say?"},
+    )
+    assert response.status_code == 200
+    assert "VinUni" in response.json()["answer"]
+
+
+def test_ask_validation_error(client, api_headers):
+    response = client.post(
+        "/ask",
+        headers=api_headers,
+        json={"invalid": "data"},
+    )
+    assert response.status_code == 422
+
+
+def test_rate_limit(client, api_headers):
+    user_id = "rate-limit-user"
+    last_status = 200
+    for _ in range(12):
+        response = client.post(
+            "/ask",
+            headers=api_headers,
+            json={"user_id": user_id, "question": "ping"},
+        )
+        last_status = response.status_code
+    assert last_status == 429
