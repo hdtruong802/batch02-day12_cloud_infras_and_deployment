@@ -40,7 +40,7 @@ is_ready = False  # readiness flag
 async def lifespan(app: FastAPI):
     """
     ✅ Lifecycle management:
-    - startup: khởi tạo connections, load model
+    - startup: khởi tạo connections, load LLM model
     - shutdown: đóng connections gracefully
     """
     global is_ready
