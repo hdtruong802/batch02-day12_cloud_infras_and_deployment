@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app import state
 from app.auth import verify_api_key
 from app.config import settings
-from app.redis_client import is_redis_fallback, ping_redis
+from app.redis_client import get_redis, is_redis_fallback, ping_redis
 from app.schemas import HealthResponse, MetricsResponse, ReadyResponse
 
 router = APIRouter(tags=["Operations"])
@@ -39,7 +39,13 @@ def health():
     summary="Readiness probe",
 )
 def ready():
-    if not state.is_ready or not ping_redis():
+    if not state.is_ready:
+        raise HTTPException(503, "Not ready — startup incomplete")
+    if settings.environment == "production" and is_redis_fallback():
+        raise HTTPException(503, "Not ready — Redis unavailable")
+    try:
+        get_redis().ping()
+    except Exception:
         raise HTTPException(503, "Not ready — Redis unavailable")
     return ReadyResponse(ready=True, instance=state.instance_id)
 
